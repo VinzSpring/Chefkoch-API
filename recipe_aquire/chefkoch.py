@@ -1,5 +1,3 @@
-import os
-
 import requests as rq
 from bs4 import BeautifulSoup
 import re
@@ -9,9 +7,12 @@ import json
 class Category:
     id_pattern = re.compile("(/rs/s0)(g\d*)")
 
-    def __init__(self, title, url):
+    def __init__(self, title, url=None, id=None):
         self.title = title.replace("&", "")
-        self.id = Category.id_pattern.search(url).group(2)
+        if url is not None:
+            self.id = Category.id_pattern.search(url).group(2)
+        if id is not None:
+            self.id = id
 
     def __str__(self):
         return json.dumps(self.__dict__, ensure_ascii=False)
@@ -33,11 +34,19 @@ class Recipe:
         self.category = category
         self.ingredients = ingredients
 
+    @staticmethod
+    def from_json(json_obj):
+        name = json_obj['name']
+        id = json_obj['id']
+        category = Category(json_obj['category']['title'], id=json_obj['category']['id'])
+        ingredients = [Ingredient(ingredient['name'], ingredient['amount']) for ingredient in json_obj['ingredients']]
+        return Recipe(name, id, category, ingredients)
+
     def __str__(self):
         return json.dumps({
             "name": self.name,
             "id": self.id,
-            "category": category.__dict__,
+            "category": self.category.__dict__,
             "ingredients": [ingredient.__dict__ for ingredient in self.ingredients]
         }, ensure_ascii=False)
 
@@ -59,7 +68,7 @@ class ChefKochAPI:
                     url = category["href"]
                 except Exception:
                     continue
-                categories.append(Category(title, url))
+                categories.append(Category(title, url=url))
 
         return categories
 
@@ -103,20 +112,28 @@ class ChefKochAPI:
                     return
 
 
-if __name__ == '__main__':
+class DataParser:
 
-    category = Category("Eis", "https://www.chefkoch.de/rs/s0g50/Eis-Rezepte.html")
+    @staticmethod
+    def write_recipes_to_json(file_path, recipes,):
+        with open(file_path + ".json", "w") as txt_file:
+            txt_file.write("[")
+            for recipe in recipes:
+                try:
+                    txt_file.write(str(recipe))
+                    txt_file.write(",")
+                except Exception:
+                    pass
+            txt_file.write("{}]")
 
-    txt_file = open(category.title + ".json", "w")
-    txt_file.write("[")
+    @staticmethod
+    def load_recipes_from_json(file_path):
+        raw_text = ""
+        with open(file_path) as file:
+            raw_text = file.read()
 
-    for recipe in ChefKochAPI.parse_recipes(category):
-        try:
-            txt_file.write(str(recipe))
-            txt_file.write(",")
-        except Exception:
-            pass
-
-    txt_file.write("{}]")
-
-
+        recipes = []
+        for obj in json.loads(raw_text):
+            if len(obj.keys()) > 0:
+                recipes.append(Recipe.from_json(obj))
+        return recipes
