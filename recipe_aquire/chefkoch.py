@@ -75,38 +75,40 @@ class ChefKochAPI:
     @staticmethod
     def parse_recipes(category, end_index=0, start_index=0):
 
-        # max_dish_count = int(soup.)
         index = start_index
         while True:
-            response = rq.get(ChefKochAPI.base_url + 'rs/' + 's' + str(index) + category.id + '/')
+            # Actual part before .html is irrelevant, but site wont serve any results if missing
+            response = rq.get(ChefKochAPI.base_url + 'rs/' + 's' + str(index) + category.id + '/recipes.html')
             if response.status_code == 404:
                 return
             soup = BeautifulSoup(response.text, "html5lib")
 
-            for recipe_list_item in soup.find_all("li", {"class": "search-list-item"}):
+            for recipe_list_item in soup.find_all("a", {"class": "rsel-recipe"}):
 
                 index += 1
 
-                recipe_id = recipe_list_item['id'].replace("recipe-", "")
-                recipe_url = ChefKochAPI.base_url + "rezepte/" + recipe_id + "/"
+                recipe_id = recipe_list_item['href'].replace("https://www.chefkoch.de/rezepte/", "")
+                recipe_id = recipe_id[0: recipe_id.index('/')]
+                recipe_url = recipe_list_item['href']
                 recipe_response = rq.get(recipe_url)
 
                 if recipe_response.status_code != 200:
                     continue
 
                 recipe_soup = BeautifulSoup(recipe_response.text, "html5lib")
-                recipe_name = recipe_soup.find("h1", {"class": "page-title"}).text
-                ingredients_table = recipe_soup.find("table", {"class": "incredients"})
+                recipe_name = recipe_soup.find("h1").contents[0]
+                ingredients_table = recipe_soup.find("table", {"class": "ingredients"})
                 ingredients_table_body = ingredients_table.find("tbody")
 
                 recipe_ingredients = []
                 for row in ingredients_table_body.find_all('tr'):
                     cols = row.find_all('td')
-                    recipe_ingredients.append(Ingredient(cols[1].text.strip().replace(u"\u00A0", " "),
-                                                         cols[0].text.strip().replace(u"\u00A0", " ")))
+                    recipe_ingredients.append(
+                        Ingredient(re.sub(' +', ' ', cols[1].text.strip().replace(u"\u00A0", " ")),
+                                   re.sub(' +', ' ', cols[0].text.strip().replace(u"\u00A0", " "))))
 
                 yield Recipe(recipe_name.replace(u"\u00A0", " "), recipe_id.replace(u"\u00A0", " "),
-                       category, recipe_ingredients)
+                             category, recipe_ingredients)
 
                 if 0 < end_index < index:
                     return
@@ -115,7 +117,7 @@ class ChefKochAPI:
 class DataParser:
 
     @staticmethod
-    def write_recipes_to_json(file_path, recipes,):
+    def write_recipes_to_json(file_path, recipes, ):
         with open(file_path + ".json", "w") as txt_file:
             txt_file.write("[")
             for recipe in recipes:
