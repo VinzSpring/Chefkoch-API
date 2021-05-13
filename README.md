@@ -1,5 +1,3 @@
-# This is a direct fork, I only updated the script to be able to parse the new site format.
-
 # Chefkoch-API
 A small API for pulling recipe data from [Chefkoch](www.chefkoch.de)
 This project was made for machine learning researcers who'd need to craft a database of different dishes and their
