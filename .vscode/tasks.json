@@ -1,0 +1,33 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "docker-build",
+			"label": "docker-build",
+			"platform": "python",
+			"dockerBuild": {
+				"tag": "chefkochapi:latest",
+				"dockerfile": "${workspaceFolder}/Dockerfile",
+				"context": "${workspaceFolder}",
+				"pull": true
+			}
+		},
+		{
+			"type": "docker-run",
+			"label": "docker-run: debug",
+			"dockerRun": {
+				"volumes": [{
+				  "localPath": "${workspaceFolder}",
+				  "containerPath": "/app"
+				}],
+				"remove": true
+			},
+			"dependsOn": [
+				"docker-build"
+			],
+			"python": {
+				"file": "recipe_aquire/main.py"
+			},
+		}
+	]
+}

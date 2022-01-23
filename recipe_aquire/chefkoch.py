@@ -1,8 +1,7 @@
-import requests as rq
-from bs4 import BeautifulSoup
 import re
 import json
-
+import requests as rq
+from bs4 import BeautifulSoup
 
 class Category:
     id_pattern = re.compile("(/rs/s0)(g\d*)")
@@ -78,12 +77,12 @@ class ChefKochAPI:
         index = start_index
         while True:
             # Actual part before .html is irrelevant, but site wont serve any results if missing
-            response = rq.get(ChefKochAPI.base_url + 'rs/' + 's' + str(index) + category.id + '/recipes.html')
+            response = rq.get(ChefKochAPI.base_url + 'rs/' + 's0' + str(index) + category.id + '/recipes.html')
             if response.status_code == 404:
                 return
             soup = BeautifulSoup(response.text, "html5lib")
-
-            for recipe_list_item in soup.find_all("a", {"class": "rsel-recipe"}):
+            
+            for recipe_list_item in soup.find_all("a", {"class": "ds-teaser-link"}):
 
                 index += 1
 
@@ -99,14 +98,12 @@ class ChefKochAPI:
                 recipe_name = recipe_soup.find("h1").contents[0]
                 ingredients_table = recipe_soup.find("table", {"class": "ingredients"})
                 ingredients_table_body = ingredients_table.find("tbody")
-
                 recipe_ingredients = []
                 for row in ingredients_table_body.find_all('tr'):
                     cols = row.find_all('td')
                     recipe_ingredients.append(
                         Ingredient(re.sub(' +', ' ', cols[1].text.strip().replace(u"\u00A0", " ")),
                                    re.sub(' +', ' ', cols[0].text.strip().replace(u"\u00A0", " "))))
-
                 yield Recipe(recipe_name.replace(u"\u00A0", " "), recipe_id.replace(u"\u00A0", " "),
                              category, recipe_ingredients)
 
@@ -118,7 +115,7 @@ class DataParser:
 
     @staticmethod
     def write_recipes_to_json(file_path, recipes, ):
-        with open(file_path + ".json", "w") as txt_file:
+        with open(file_path + ".json", "w+") as txt_file:
             txt_file.write("[")
             for recipe in recipes:
                 try:
