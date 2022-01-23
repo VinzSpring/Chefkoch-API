@@ -77,7 +77,7 @@ class ChefKochAPI:
         index = start_index
         while True:
             # Actual part before .html is irrelevant, but site wont serve any results if missing
-            response = rq.get(ChefKochAPI.base_url + 'rs/' + 's0' + str(index) + category.id + '/recipes.html')
+            response = rq.get(ChefKochAPI.base_url + 'rs/' + 's' + str(index) + category.id + '/recipes.html')
             if response.status_code == 404:
                 return
             soup = BeautifulSoup(response.text, "html5lib")
