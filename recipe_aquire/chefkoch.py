@@ -28,7 +28,7 @@ class Ingredient:
 
 
 class Recipe:
-    def __init__(self, name, id, category, ingredients, text, instructions, tags, kcal, rating, ratings_amount):
+    def __init__(self, name, id, category, ingredients, text, instructions, tags, kcal, rating, ratings_amount, recipe_url, images):
         self.name = name
         self.id = id
         self.category = category
@@ -39,6 +39,8 @@ class Recipe:
         self.kcal = kcal
         self.rating = rating
         self.ratings_amount = ratings_amount
+        self.recipe_url = recipe_url
+        self.images = images
 
     """ @staticmethod
     def from_json(json_obj):
@@ -59,7 +61,8 @@ class Recipe:
             "tags": [tag for tag in self.tags],
             "kcal": self.kcal,
             "rating": self.rating,
-            "ratings_amount": self.ratings_amount
+            "ratings_amount": self.ratings_amount,
+            "images": [image for image in self.images]
         }, ensure_ascii=False)
 
 
@@ -141,13 +144,6 @@ class ChefKochAPI:
                     recipe_tags_parent = recipe_soup.find("div", {"class": "ds-box recipe-tags"})
                     if recipe_tags_parent is not None:
                         recipe_tags_direct_parents = recipe_tags_parent.find("amp-carousel").find_all("div")
-                        """ print(recipe_tags_direct_parents)
-                        recipe_tags_direct_parents2 = recipe_tags_direct_parents.find("div", {"class": "i-amphtml-carousel-content"})
-                        print(recipe_tags_direct_parents2)
-                        recipe_tags_direct_parents3 = recipe_tags_direct_parents2.find("div", {"class": "i-amphtml-carousel-scroll"})
-                        print(recipe_tags_direct_parents3)
-                        recipe_tags_direct_parents4 = recipe_tags_direct_parents3.find_all("div")
-                        print(recipe_tags_direct_parents4) """
                         if recipe_tags_direct_parents is not None:
                             for recipe_tags_direct_parent in recipe_tags_direct_parents:
                                 recipe_tag_link = recipe_tags_direct_parent.find("a", recursive=False)
@@ -169,10 +165,22 @@ class ChefKochAPI:
                         recipe_ratings_amount_direct_parent = recipe_rating_parent.find("div", {"class": "ds-rating-count"})
                         if recipe_ratings_amount_direct_parent is not None:
                             recipe_ratings_amount = int(recipe_ratings_amount_direct_parent.find("span").find_all("span")[1].getText().strip().replace(".", ""))
-                        
+                            
+                    images = []
+                    images_parent = recipe_soup.find("div", {"class": "ds-mb-left recipe-image"})
+                    if images_parent is not None:
+                        images_direct_parents = images_parent.find("amp-carousel").find_all("div", recursive=False)
+                        if images_direct_parents is not None:
+                            for image_direct_parent in images_direct_parents:
+                                image_img_tag = image_direct_parent.find("amp-img")
+                                if image_img_tag.has_attr("srcset"):
+                                    images.append(image_img_tag["srcset"])
+                                elif image_img_tag.has_attr("src"):
+                                    images.append(image_img_tag["src"])
+                    
                     yield Recipe(recipe_name.replace(u"\u00A0", " "), recipe_id.replace(u"\u00A0", " "),
                                 category, recipe_ingredients, recipe_text, recipe_instructions, recipe_tags,
-                                recipe_kcal, recipe_rating, recipe_ratings_amount)
+                                recipe_kcal, recipe_rating, recipe_ratings_amount, recipe_url, images)
                     
                 if recipe_index >= recipe_amount -10:
                     print(str(recipe_index) + " recipes in category " +  category.title + " crawled!")
