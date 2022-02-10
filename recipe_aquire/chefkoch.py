@@ -1,8 +1,9 @@
-from dis import Instruction
 import re
 import json
 import requests as rq
 from bs4 import BeautifulSoup
+import lxml
+import cchardet
 
 class Category:
     id_pattern = re.compile("(/rs/s0)(g\d*)")
@@ -72,7 +73,7 @@ class ChefKochAPI:
     @staticmethod
     def get_categories():
         response = rq.get(ChefKochAPI.base_url + "rezepte/kategorien/")
-        soup = BeautifulSoup(response.text, "html5lib")
+        soup = BeautifulSoup(response.text, 'lxml')
 
         categories = []
         for category_column in soup.findAll("div", {"class": "category-column"}):
@@ -92,13 +93,14 @@ class ChefKochAPI:
         page_index = 0
         recipe_index = 0
         recipe_amount = None
+        requests_session = rq.Session()
         # index = start_index
         while True:
             # Actual part before .html is irrelevant, but site wont serve any results if missing
-            response = rq.get(ChefKochAPI.base_url + 'rs/' + 's' + str(page_index) + category.id + '/recipes.html')
+            response = requests_session.get(ChefKochAPI.base_url + 'rs/' + 's' + str(page_index) + category.id + '/recipes.html')
             if response.status_code == 404:
                 return
-            soup = BeautifulSoup(response.text, "html5lib")
+            soup = BeautifulSoup(response.text, 'lxml')
             if recipe_amount is None:
                 recipe_amount_string = soup.find_all("span", {"class": "ds-text-category ds-mr-3"})[0]
                 recipe_amount = int(recipe_amount_string.get_text().strip().split(" ")[0].replace(".", ""))
@@ -109,12 +111,12 @@ class ChefKochAPI:
                 recipe_id = recipe_list_item['href'].replace("https://www.chefkoch.de/rezepte/", "")
                 recipe_id = recipe_id[0: recipe_id.index('/')]
                 recipe_url = recipe_list_item['href']
-                recipe_response = rq.get(recipe_url)
+                recipe_response = requests_session.get(recipe_url)
 
                 if recipe_response.status_code != 200:
                     continue
 
-                recipe_soup = BeautifulSoup(recipe_response.text, "html5lib")
+                recipe_soup = BeautifulSoup(recipe_response.text, 'lxml')
                 if hasattr(recipe_soup.find("h1"), 'contents'):
                     recipe_name = recipe_soup.find("h1").contents[0]
                     # print(category.title + ": " + recipe_name)
@@ -177,6 +179,8 @@ class ChefKochAPI:
                                     images.append(image_img_tag["srcset"])
                                 elif image_img_tag.has_attr("src"):
                                     images.append(image_img_tag["src"])
+                                    
+                    print(str(recipe_index) + " - ", sep=' ', end='', flush=True)
                     
                     yield Recipe(recipe_name.replace(u"\u00A0", " "), recipe_id.replace(u"\u00A0", " "),
                                 category, recipe_ingredients, recipe_text, recipe_instructions, recipe_tags,
