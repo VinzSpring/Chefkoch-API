@@ -8,5 +8,5 @@ class IngredientsAnalyzer:
                 if ingredient.name in statistics:
                     statistics[ingredient.name] += 1
                 else:
-                    statistics[ingredient.name] = 0
+                    statistics[ingredient.name] = 1
         return statistics
