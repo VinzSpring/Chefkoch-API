@@ -1,5 +1,5 @@
 # Chefkoch-API
-A small API for pulling recipe data from [Chefkoch](www.chefkoch.de)
+A small API for pulling recipe data from [Chefkoch](https://www.chefkoch.de)
 This project was made for machine learning researcers who'd need to craft a database of different dishes and their
 ingredients.
 
